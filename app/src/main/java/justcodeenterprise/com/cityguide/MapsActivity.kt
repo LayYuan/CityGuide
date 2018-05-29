@@ -13,6 +13,12 @@
 //Reference: https://www.raywenderlich.com/183588/introduction-google-maps-api-android-2
 
 
+//Step 1: Creating API Keys
+//Open res/values/google_maps_api.xml. -> Copy link paste in browser -> enable API -> Create Project -> Continue -> Create API Key.
+//Copy the API key and replace google_maps_key.
+
+//For 5. Search for places
+//Go back to the developer console and enable the Google Places API for Android.
 
 package justcodeenterprise.com.cityguide
 
@@ -47,8 +53,14 @@ import java.io.IOException
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarkerClickListener  {
 
+    //2. Display and customize markers on a map
     override fun onMarkerClick(p0: Marker?) = false
 
+    //Display map
+    private lateinit var map: GoogleMap
+
+    //set up
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     //4.Receiving Location update
     // 4.1 create a location request.
@@ -60,16 +72,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
     //4.3
     private var locationUpdateState = false
 
-    private lateinit var map: GoogleMap
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
-
-    //1 Get current location
+    //1.1 Show a user’s current location
     private lateinit var lastLocation: Location
-
 
     companion object {
 
-        //4.4
+        //User Permission
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1
 
         // 4.5
@@ -87,6 +95,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
         val mapFragment = supportFragmentManager
                 .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+
+        //1.2
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
 
@@ -129,22 +139,20 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
 //       // map.moveCamera(CameraUpdateFactory.newLatLng(myPlace))
 //        map.moveCamera(CameraUpdateFactory.newLatLngZoom(myPlace, 12.0f))
 
+        //enable the zoom controls on the map
         map.getUiSettings().setZoomControlsEnabled(true)
+
+        //2.1. Display and customize markers on a map
+        //declare MapsActivity as the callback triggered when the user clicks a marker on this map.
         map.setOnMarkerClickListener(this)
 
         setUpMap()
 
     }
 
-//    companion object {
-//        private const val LOCATION_PERMISSION_REQUEST_CODE = 1
-//    }
-
-
-
     private fun setUpMap() {
 
-        //Check/retrieve permission from user
+        //checks if the app has been granted the ACCESS_FINE_LOCATION permission. If it hasn’t, then request it from the user.
         if (ActivityCompat.checkSelfPermission(this,
                         android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
@@ -152,41 +160,49 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarker
             return
         }
 
+        // Show a user’s current location
+        //1.2 enables the my-location layer which draws a light blue dot on the user’s location
         map.isMyLocationEnabled = true
+
         map.mapType = GoogleMap.MAP_TYPE_NORMAL
 
-        //retrieve current location
+        //1.3 give the most recent location currently available.
         fusedLocationClient.lastLocation.addOnSuccessListener(this) { location ->
             // Got last known location. In some rare situations this can be null.
             if (location != null) {
+
                 lastLocation = location
+
                 val currentLatLng = LatLng(location.latitude, location.longitude)
+
+                //2.2
                 placeMarkerOnMap(currentLatLng)
+
+                //1.4 move the camera to the user’s current location.
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 16f))
             }
         }
     }
 
-    //To change marker, change image in resource with name ic_user_location_jb
+    //2. Display and customize markers on a map
     private fun placeMarkerOnMap(location: LatLng) {
 
         val markerOptions = MarkerOptions().position(location)
 
+        //2.1 To change marker, change image in resource with name ic_user_location_jb
        markerOptions.icon(BitmapDescriptorFactory.fromBitmap( BitmapFactory.decodeResource(resources, R.mipmap.ic_user_location_jb)))
 
-        //retrieve address
+        //3.2 retrieve address
         val titleStr = getAddress(location)  // add these two line s
         markerOptions.title(titleStr)
 
         map.addMarker(markerOptions)
-
-
     }
 
 
-    //Retrieve address
+    //3. Retrieve the address of a location given the coordinates
     private fun getAddress(latLng: LatLng): String {
-        // 1
+        //3.1 Creates a Geocoder object to turn a latitude and longitude coordinate into an address and vice versa.
         val geocoder = Geocoder(this)
         val addresses: List<Address>?
         val address: Address?
